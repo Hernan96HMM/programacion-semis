@@ -10,8 +10,9 @@ const pool = new Pool({
 const DATA_PATH = process.env.SEED_FILE || path.join(__dirname, '..', 'sica_2026-09-23.json');
 
 async function seed() {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     console.log(`Cargando dataset desde ${DATA_PATH} ...`);
     const d = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
 
@@ -95,11 +96,17 @@ async function seed() {
     await client.query('COMMIT');
     console.log('\nSeed completado correctamente.');
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('Rollback failed:', rollbackErr);
+      }
+    }
     console.error('Seed error:', err);
     process.exit(1);
   } finally {
-    client.release();
+    if (client) client.release();
     await pool.end();
   }
 }

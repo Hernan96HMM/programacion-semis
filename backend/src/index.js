@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const runMigrations = require('./migrate');
 
 const stateRoutes = require('./routes/state');
@@ -16,7 +15,10 @@ const backupRoutes = require('./routes/backup');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
+});
+
 app.use(express.json({ limit: '5mb' }));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));

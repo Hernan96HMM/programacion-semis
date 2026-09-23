@@ -18,7 +18,7 @@ router.post('/run', async (req, res) => {
         await client.query('BEGIN');
 
         const [ordersR, resourcesR, groupsR, seqsR, calR, simR] = await Promise.all([
-          client.query('SELECT * FROM orders'),
+          client.query('SELECT * FROM orders ORDER BY priority NULLS LAST, order_num, unit_num'),
           client.query('SELECT * FROM resources'),
           client.query('SELECT * FROM resource_groups'),
           client.query('SELECT * FROM sequences'),
