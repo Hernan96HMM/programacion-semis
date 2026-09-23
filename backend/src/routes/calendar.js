@@ -15,6 +15,9 @@ router.get('/', async (req, res) => {
 
 router.put('/', async (req, res) => {
   const { workDays, hoursPerDay, holidays } = req.body;
+  if (Array.isArray(workDays) && workDays.length === 0) {
+    return res.status(400).json({ error: 'Debe haber al menos un día laborable' });
+  }
   try {
     const result = await db.query(
       `UPDATE calendar SET

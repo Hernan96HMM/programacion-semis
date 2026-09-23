@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { runSchedule, parsePreds } = require('./schedulerCore');
+const { addWDs } = require('./calendarUtils');
 
 function baseState() {
   return {
@@ -66,4 +67,13 @@ test('runSchedule marca skippedCount cuando la orden no tiene secuencia resolubl
   const { scheduledCount, skippedCount } = runSchedule(state, { target: 'NOSEQ', respectCap: true, strictPrio: true });
   assert.equal(scheduledCount, 0);
   assert.equal(skippedCount, 1);
+});
+
+test('addWDs no entra en loop infinito cuando WD está vacío (guarda de iteración)', () => {
+  // Regresión: sin la guarda `g++ < 3650`, isWD nunca es true con WD=[] y
+  // el while(c<n) nunca termina, congelando el event loop de Node.
+  // Si este test termina (y npm test no cuelga), la guarda funciona.
+  const result = addWDs('2026-09-23', 5, new Set(), []);
+  assert.equal(typeof result, 'string');
+  assert.match(result, /^\d{4}-\d{2}-\d{2}$/);
 });

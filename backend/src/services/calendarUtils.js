@@ -24,8 +24,8 @@ function nextWD(ds, H, WD) {
 }
 
 function addWDs(ds, n, H, WD) {
-  let d = new Date(`${ds}T12:00:00`), c = 0;
-  while (c < n) {
+  let d = new Date(`${ds}T12:00:00`), c = 0, g = 0;
+  while (c < n && g++ < 3650) {
     d.setDate(d.getDate() + 1);
     if (isWD(d.toISOString().split('T')[0], H, WD)) c++;
   }
