@@ -67,10 +67,14 @@ const ORDER_COLUMN_MAP = {
 // Acepta un objeto (parcial o completo) en camelCase y devuelve el mismo objeto
 // traducido a snake_case (solo las claves presentes en el input), listo para usarse
 // como { columna: valor } en un UPDATE ... SET o INSERT dinámico.
+// JSONB columns are JSON.stringified; primitives and null pass through unchanged.
 function orderFieldsToRow(fields) {
   const out = {};
   for (const [camel, snake] of Object.entries(ORDER_COLUMN_MAP)) {
-    if (Object.prototype.hasOwnProperty.call(fields, camel)) out[snake] = fields[camel];
+    if (Object.prototype.hasOwnProperty.call(fields, camel)) {
+      const val = fields[camel];
+      out[snake] = (val !== null && typeof val === 'object') ? JSON.stringify(val) : val;
+    }
   }
   return out;
 }
