@@ -8,11 +8,11 @@ const {
 router.get('/', async (req, res) => {
   try {
     const [orders, resources, groups, ops, seqs, cal, sim] = await Promise.all([
-      db.query('SELECT * FROM orders'),
-      db.query('SELECT * FROM resources'),
-      db.query('SELECT * FROM resource_groups'),
+      db.query('SELECT * FROM orders ORDER BY priority NULLS LAST, order_num, unit_num'),
+      db.query('SELECT * FROM resources ORDER BY id'),
+      db.query('SELECT * FROM resource_groups ORDER BY name'),
       db.query('SELECT name FROM operations ORDER BY name'),
-      db.query('SELECT * FROM sequences'),
+      db.query('SELECT * FROM sequences ORDER BY name'),
       db.query('SELECT * FROM calendar WHERE id = true'),
       db.query('SELECT * FROM sim_params WHERE id = true'),
     ]);
