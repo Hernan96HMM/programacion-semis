@@ -654,39 +654,17 @@ function _projEnds(){
     .forEach(o=>{const e=o.scheduledOps?.at(-1)?.endDate||o.endDate||null;if(e)m[o.id]=e;});
   return m;
 }
-// Simula +1 de capacidad en cada recurso y mide cuantos dias de entrega se ganan
+// Simula +1 de capacidad en cada recurso y mide cuantos dias de entrega se ganan.
+// DESHABILITADO tras la migración a backend: el motor de scheduling ahora vive
+// server-side (POST /schedule/run) y recalcula desde Postgres, ignorando por
+// completo cualquier mutación local de DB.resources[i].capacity. Simular esto
+// disparaba antes un doSchedule(true) — ahora un fetch real — por cada recurso
+// usado en cada render del dashboard, sin ningún efecto (siempre saved:0) y
+// sobrescribiendo DB.orders de forma redundante cuando cada respuesta llegaba.
+// No hay endpoint de "dry run con capacidad hipotética" — devolvemos [] para
+// que el panel de renderDash degrade al mensaje "Sin operaciones programadas".
 function whatIfCapacity(){
-  const base=_projEnds();
-  const usados=new Set();
-  DB.orders.filter(o=>!isSim(o)&&o.progress<1).forEach(o=>(o.scheduledOps||[]).forEach(op=>{
-    const rid=op.resolvedRes||op.res;if(rid)usados.add(rid);}));
-  const snap=_snapOrders(),prevTarget=schedTarget,prevPersist=_noPersist;
-  _noPersist=true;schedTarget='all';
-  const out=[];
-  try{
-    [...usados].forEach(rid=>{
-      const r=getR(rid);if(!r)return;
-      const capOrig=r.capacity||1;
-      r.capacity=capOrig+1;
-      try{
-        doSchedule(true);
-        const now=_projEnds();
-        let saved=0,better=0;
-        Object.keys(base).forEach(id=>{
-          if(!now[id])return;
-          const d=calDiff(now[id],base[id]); // >0 => termina antes
-          if(d>0){saved+=d;better++;}
-        });
-        out.push({rid,name:r.name||rid,color:r.color||'#6B7280',cap:capOrig,saved,better});
-      }catch(e){console.error('[whatIf]',rid,e);}
-      r.capacity=capOrig;
-      _restoreOrders(snap);
-    });
-  }finally{
-    _restoreOrders(snap);
-    schedTarget=prevTarget;_noPersist=prevPersist;
-  }
-  return out.sort((a,b)=>b.saved-a.saved);
+  return [];
 }
 // Por proyecto: recurso a ampliar y tarea a acortar, sobre el camino critico
 function projectAdvice(){
@@ -2467,7 +2445,7 @@ function renderConfig(){
       <div class="col-lg-4">
         <div class="card shadow mb-3"><div class="card-header py-2"><span class="fw-semibold small"><i class="bi bi-clock" style="color:#06B6D4;"></i> Horario Laboral</span></div>
           <div class="card-body"><label class="form-label small fw-semibold">Días laborables</label><div class="d-flex flex-wrap gap-2 mb-3">${[1,2,3,4,5,6,7].map(d=>`<div class="form-check"><input class="form-check-input" type="checkbox" id="wd${d}" ${(cal.workDays||[1,2,3,4,5]).includes(d)?'checked':''} onchange="togWD(${d},this.checked)"><label class="form-check-label small" for="wd${d}">${dN[d]}</label></div>`).join('')}</div>
-          <label class="form-label small">Horas/día</label><input type="number" class="form-control form-control-sm" value="${cal.hoursPerDay||8}" min="1" max="24" onchange="DB.calendar.hoursPerDay=parseInt(this.value);saveDB();toast('Guardado')"></div>
+          <label class="form-label small">Horas/día</label><input type="number" class="form-control form-control-sm" value="${cal.hoursPerDay||8}" min="1" max="24" onchange="saveHoursPerDay(this.value)"></div>
         </div>
         <div class="card shadow"><div class="card-header py-2"><span class="fw-semibold small"><i class="bi bi-calendar-plus" style="color:#F59E0B;"></i> Agregar período no laborable</span></div>
           <div class="card-body">
@@ -2549,6 +2527,11 @@ async function delOp(i){if(!DB.operations?.[i])return;if(!confirm(`¿Eliminar "$
 async function togWD(d,c){const wd=DB.calendar.workDays||[];if(c){if(!wd.includes(d))wd.push(d);}else{const i=wd.indexOf(d);if(i>=0)wd.splice(i,1);}DB.calendar.workDays=wd.sort();
   try{await apiSend('PUT','/calendar',{workDays:DB.calendar.workDays});}catch(e){console.error('[togWD]',e);toast('Error al guardar: '+e.message,'danger');return;}
   toast('Actualizado');}
+async function saveHoursPerDay(v){
+  const hoursPerDay=parseInt(v)||8;
+  DB.calendar.hoursPerDay=hoursPerDay;
+  try{await apiSend('PUT','/calendar',{hoursPerDay});toast('Guardado');}catch(e){console.error('[saveHoursPerDay]',e);toast('Error al guardar: '+e.message,'danger');}
+}
 function addHol(){
   const dateFrom=document.getElementById('holFrom').value;
   const dateTo=document.getElementById('holTo').value||dateFrom;
