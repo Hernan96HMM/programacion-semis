@@ -47,8 +47,8 @@ function rowToOrder(r) {
   };
 }
 
-// Acepta un objeto (parcial o completo) en camelCase y devuelve
-// { columns, values, placeholders } listo para un UPDATE ... SET dinámico.
+// Mapa de camelCase → snake_case para campos de Order.
+// Usada por orderFieldsToRow() para traducir objetos de entrada.
 const ORDER_COLUMN_MAP = {
   orderNum: 'order_num', unitNum: 'unit_num', peInicial: 'pe_inicial',
   client: 'client', productType: 'product_type', progress: 'progress',
@@ -64,6 +64,9 @@ const ORDER_COLUMN_MAP = {
   _engEnd: 'eng_end', _simBaseOT: 'sim_base_ot',
 };
 
+// Acepta un objeto (parcial o completo) en camelCase y devuelve el mismo objeto
+// traducido a snake_case (solo las claves presentes en el input), listo para usarse
+// como { columna: valor } en un UPDATE ... SET o INSERT dinámico.
 function orderFieldsToRow(fields) {
   const out = {};
   for (const [camel, snake] of Object.entries(ORDER_COLUMN_MAP)) {
