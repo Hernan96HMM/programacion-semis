@@ -2,6 +2,13 @@
 
 App fullstack para la programación (scheduling) de producción de semirremolques de SICA Metalúrgica Argentina. Migrada desde `SICA_Programacion.html` (single-file, `localStorage`) a backend Node.js + PostgreSQL + frontend estático.
 
+## Estado del proyecto / Pendientes
+
+- Esta es una migración recién completada de una app single-file con `localStorage`. Queda una lista completa de decisiones pendientes (hostname definitivo, si conservar `xreset`, confirmación del motor de DB, puertos del host) en la sección final de `docs/superpowers/plans/2026-09-23-migracion-fullstack.md`.
+- `docs/nginx-externo-programacion.conf` es un snippet PROPUESTO, NO APLICADO y NO VERIFICADO para el nginx externo del servidor de producción. No fue probado contra la config real del servidor `sicalab` y necesita revisión/ajuste manual antes de usarse — en particular, si ese nginx externo corre en un contenedor, `proxy_pass http://localhost:3010` probablemente deba cambiarse por la IP real del host o una red Docker compartida en lugar de `localhost`.
+- No fue posible hacer testing real en navegador durante el desarrollo (no había herramienta de automatización de navegador disponible en el entorno). El render del Gantt, las interacciones de drag y la persistencia real de ediciones tras un F5 NO fueron verificadas manualmente en un navegador real. Antes de exponer esto a usuarios reales hace falta un smoke test manual: (1) el Gantt renderiza correctamente, (2) editar una orden y recargar (F5) muestra el cambio guardado, (3) disparar dos scheduling runs al mismo tiempo no corrompe datos (prueba el lock de concurrencia bajo contención real).
+- Si no se crea `.env` a partir de `.env.example` antes del primer deploy, `docker-compose.yml` cae en una contraseña de base de datos por defecto (`sica_secure_pass`) hardcodeada en el compose. Ese default DEBE cambiarse para cualquier uso más allá de pruebas locales.
+
 ## Requisitos
 
 - Docker y Docker Compose
