@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: sica_semis_db
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sica_semis}
+      POSTGRES_USER: ${POSTGRES_USER:-sica}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sica_secure_pass}
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sica} -d ${POSTGRES_DB:-sica_semis}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: sica_semis_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sica}:${POSTGRES_PASSWORD:-sica_secure_pass}@db:5432/${POSTGRES_DB:-sica_semis}
+      NODE_ENV: production
+      PORT: 3001
+    volumes:
+      - ./sica_2026-09-23.json:/sica_2026-09-23.json:ro
+    ports:
+      - "3011:3001"
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: sica_semis_frontend
+    ports:
+      - "3010:80"
+    depends_on:
+      - backend
+    restart: always
