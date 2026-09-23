@@ -296,7 +296,7 @@ git commit -m "feat: esquema Postgres inicial y bootstrap de migraciones"
 
 **Interfaces:**
 - Consumes: nada (módulo puro).
-- Produces: `rowToOrder`, `orderFieldsToRow`, `rowToResource`, `resourceFieldsToRow`, `rowToGroup`, `groupFieldsToRow`, `rowToSequence`, `sequenceFieldsToRow`, `rowToCalendar`, `rowToSim` — usados por Tasks 4–13 (rutas) y `seed.js`.
+- Produces: `rowToOrder`, `orderFieldsToRow`, `rowToResource`, `rowToGroup`, `rowToSequence`, `rowToCalendar`, `rowToSim` — usados por Tasks 4–13 (rutas) y `seed.js`. (No hay `resourceFieldsToRow`/`groupFieldsToRow`/`sequenceFieldsToRow`: los campos de `resources`/`resource_groups`/`sequences` son palabras únicas — idénticas en camelCase y snake_case — así que las rutas de esas 3 entidades arman su `UPDATE`/`INSERT` leyendo `req.body` directamente, sin mapper inverso.)
 
 - [ ] **Step 1: Escribir `backend/src/mappers.js`**
 
