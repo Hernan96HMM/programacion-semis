@@ -370,7 +370,13 @@ const ORDER_COLUMN_MAP = {
 function orderFieldsToRow(fields) {
   const out = {};
   for (const [camel, snake] of Object.entries(ORDER_COLUMN_MAP)) {
-    if (Object.prototype.hasOwnProperty.call(fields, camel)) out[snake] = fields[camel];
+    if (Object.prototype.hasOwnProperty.call(fields, camel)) {
+      const val = fields[camel];
+      // pg no serializa objetos/arrays JS como JSON para columnas JSONB (los
+      // manda como literal de array de Postgres) — hay que stringify-earlos
+      // a mano. null pasa sin tocar para poder limpiar una columna JSONB.
+      out[snake] = (val !== null && typeof val === 'object') ? JSON.stringify(val) : val;
+    }
   }
   return out;
 }
