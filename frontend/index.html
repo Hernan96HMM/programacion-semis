@@ -1342,7 +1342,9 @@ function renderOTDetail(){
     <td style="width:88px;"><div class="d-flex align-items-center gap-1">
       <span class="sob" id="opDot-${i}" style="background:${res?.color||'#6B7280'};width:8px;height:8px;flex-shrink:0;"></span>
       <div class="input-group input-group-sm" style="width:72px;">
-        <input type="number" class="form-control op-prog" id="opp-${i}" value="${progVal}" min="0" max="100" style="font-size:.72rem;padding:2px 3px;background:${progBg}!important;color:${progColor}!important;" title="% completado de esta operación">
+        <input type="number" class="form-control op-prog" id="opp-${i}" value="${progVal}" min="0" max="100"
+          onchange="saveOpProg(${i})"
+          style="font-size:.72rem;padding:2px 3px;background:${progBg}!important;color:${progColor}!important;" title="% completado de esta operación">
         <span class="input-group-text" style="font-size:.6rem;padding:2px 2px;">%</span>
       </div>
     </div></td>
@@ -1546,6 +1548,38 @@ function setActiveTaskProg(){
   const remTxt=pct>=100?'Completada':rem+'d restantes';
   toast('Tarea "'+_act.name+'": '+pct+'% → '+remTxt,'success');
   renderOTDetail(); // refresh panel
+}
+// Igual que setActiveTaskProg pero para cualquier fila de la tabla de operaciones,
+// no solo la tarea activa (calcStatus). Editar directo en la tabla de detalle de OT.
+function saveOpProg(i){
+  const o=getO(detId);const seq=getSeq(o);if(!o||!seq)return;
+  const pct=parseInt(document.getElementById('opp-'+i)?.value)||0;
+  if(pct<0||pct>100){toast('Ingresá un valor entre 0 y 100','warning');return;}
+  const _lst=otOps(o,seq);
+  const _act=_lst.find(sop=>sop._i===i);
+  if(!_act){toast('No se encontró la operación','warning');return;}
+  const ai=_act._i;
+  if(_act._x){ if(o.opExtra&&o.opExtra[ai-1000])o.opExtra[ai-1000].progress=pct/100; }
+  else { if(!o.opProgress||o.opProgress.length!==(seq.ops||[]).length)o.opProgress=(seq.ops||[]).map(()=>undefined);
+         o.opProgress[ai]=pct/100; }
+  let totalProg=0;
+  const _erA=effRanges(o,seq);
+  const _progOf=sop=>sop._x?((o.opExtra?.[sop._i-1000]||{}).progress??0):(o.opProgress?.[sop._i]??0);
+  const _lst2=otOps(o,seq);
+  _lst2.forEach(sop=>{
+    const r=_erA[sop._i];if(!r)return;              // excluida: no computa
+    totalProg+=(r.to-r.from)*_progOf(sop);
+  });
+  o.progress=Math.min(1,Math.max(o.progress,totalProg));
+  const _pend=_lst2.filter(sop=>!o.opSkip?.[sop._i]);
+  if(_pend.length&&_pend.every(sop=>_progOf(sop)>=1))o.progress=1;
+  if(o.progress>=1)o.status='TERMINADO';
+  apiSend('PUT','/orders/'+encodeURIComponent(o.id),{opExtra:o.opExtra,opProgress:o.opProgress,progress:o.progress,status:o.status}).catch(e=>{console.error('[saveOpProg]',e);toast('Error al guardar: '+e.message,'danger');});
+  const fd=_act.days||5;
+  const rem=pct>0&&pct<100?Math.max(1,Math.ceil(fd*(1-pct/100))):pct>=100?0:fd;
+  const remTxt=pct>=100?'Completada':rem+'d restantes';
+  toast('"'+_act.name+'": '+pct+'% → '+remTxt,'success');
+  renderOTDetail();
 }
 function syncProg(){
   // Distribute overall order progress across ops using sequence from/to ranges
